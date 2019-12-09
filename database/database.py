@@ -52,21 +52,20 @@ def create_publisher_table():
     finally:
         close_connection(connection, cursor)
 
-create_books_table()
-create_publisher_table()
 
-def querry_database (query, parameters):
+def querry_database(query, parameters=None):
     try:
         connection, cursor = open_connection()
-        cursor.execute(query, parameters)
-        data = cursor.fetchall()
-        connection.commit()
-        print(data)
+        if parameters:
+            cursor.execute(query, parameters)
+            connection.commit()
+        else:
+            for row in cursor.execute(query):
+                print(row)
     except sqlite3.DataError as error:
         print(error)
     finally:
         connection.close()
-
 
 
 def create_book(book):
@@ -74,78 +73,36 @@ def create_book(book):
     parameters = (book.book_id, book.book_name, book.author, book.selling_price)
     querry_database(query, parameters)
 
-def get_book(book):
-        query = "SELECT * FROM books WHERE book_name = (?) OR book_id = (?) OR author = (?) OR selling_price = (?)"
-        parameters = (book.book_id, book.book_name, book.author, book.selling_price,)
-        querry_database(query, parameters)
 
-
-book1=book(None, "Tu gali", "Josef Murphy", 25.05)
-book2=book(None, "As nenoriu", "Petras Petrauskas", 12.90)
-
-# create_book(book1)
-# create_book(book2)
-get_book(book2)
-get_book(book1)
+def get_book():
+    query = "SELECT * FROM books"
+    querry_database(query)
 
 
 def update_book(book):
+    query = "UPDATE books SET book_name = 'Belekas' WHERE book_name = (?) OR book_id = (?) OR author = (?) OR selling_price = (?)"
+    parameters = (book.book_name, book.book_id, book.author, book.selling_price)
 
-        query = "UPDATE books SET book_name = 'Belekas' WHERE book_name = (?) OR book_id = (?) OR author = (?) OR selling_price = (?)"
-        parameters = (book.book_name, book.book_id, book.author, book.selling_price)
-
-        querry_database(query, parameters)
-
-# update_book(book1)
+    querry_database(query, parameters)
 
 
 def delete_book(book):
+    query = "DELETE FROM books WHERE book_name = (?) OR book_id = (?) OR author = (?) OR selling_price = (?)"
+    parameters = (book.book_name, book.book_id, book.author, book.selling_price)
+    querry_database(query, parameters)
 
-        query = "DELETE FROM books WHERE book_name = (?) OR book_id = (?) OR author = (?) OR selling_price = (?)"
-        parameters = (book.book_name, book.book_id, book.author, book.selling_price)
-        querry_database(query, parameters)
-
-# delete_book(book2)
-# delete_book(book1)
 
 def create_publisher(publisher):
-    try:
-        connection, cursor = open_connection()
-        query = "INSERT INTO publishers VALUES (?,?,?,?,?,?)"
-        parameters = (publisher.publisher_id, publisher.publisher_name, publisher.book_name,
-                      publisher.author, publisher.printing_quantity, publisher.printing_price)
-        cursor.execute(query, parameters)
-        connection.commit()
-    except sqlite3.DataError as error:
-        print(error)
-    finally:
-        close_connection(connection, cursor)
+    query = "INSERT INTO publishers VALUES (?,?,?,?,?,?)"
+    parameters = (publisher.publisher_id, publisher.publisher_name, publisher.book_name,
+                  publisher.author, publisher.printing_quantity, publisher.printing_price)
+
+    querry_database(query, parameters)
 
 
-publisher1 = publisher(None, "Baltos_lankos", "Tu_gali", "Josef_Murphy", 5000, 8)
-
-# create_publisher(publisher1)
-
-
-
-
-def get_publisher(publisher):
-    try:
-        connection, cursor = open_connection()
-        query = """SELECT * FROM publishers WHERE publisher_id = (?) OR publisher_name = (?) OR book_name = (?) OR author = (?) OR
-                    printing_quantiy = (?) OR printing_price = (?)"""
-        parameters = (publisher.publisher_id, publisher.publisher_name, publisher.book_name,
-                      publisher.author, publisher.printing_quantity, publisher.printing_price)
-
-        for row in cursor.execute(query, parameters):
-            print(row)
-
-    except sqlite3.DataError as error:
-        print(error)
-    finally:
-        close_connection(connection, cursor)
-# get_publisher(publisher1)
-
+def get_publisher():
+    query = """SELECT * FROM publishers"""
+    querry_database(query)
 
 
 def update_publisher(publisher):
@@ -162,9 +119,6 @@ def update_publisher(publisher):
         print(error)
     finally:
         close_connection(connection, cursor)
-
-# update_publisher(publisher1)
-# get_publisher(publisher1)
 
 
 def delete_publisher(publisher):
@@ -183,13 +137,10 @@ def delete_publisher(publisher):
         close_connection(connection, cursor)
 
 
-# delete_publisher(publisher1)
-get_publisher(publisher1)
-
-# filter by single field
 def filter_by_name(publisher):
     book_name = publisher.book_name
     return book_name
+
 
 def filter_by_field(publisher):
     try:
@@ -208,8 +159,6 @@ def filter_by_field(publisher):
         print(error)
     finally:
         close_connection(connection, cursor)
-#
-# filter_by_field(publisher1)
 
 
 def junction_table():
@@ -229,25 +178,36 @@ def junction_table():
     finally:
         close_connection(connection, cursor)
 
-junction_table()
 
-def insert_into_junction(book, publisher):
-    try:
-        connection, cursor = open_connection()
-        query = ("""INSERT INTO junction (book_id, publisher_id) SELECT (SELECT book_id FROM books WHERE book_name = (?)),
+def insert_into_junction(book_name, publisher_name):
+    query = ("""INSERT INTO junction (book_id, publisher_id) SELECT (SELECT book_id FROM books WHERE book_name = (?)),
                                                  (SELECT publisher_id FROM publishers WHERE publisher_name = (?))""")
-        query_parameters = (book.book_name, publisher.publisher_name)
+    parameters = (book_name, publisher_name)
 
-        cursor.execute(query, query_parameters)
-
-    except sqlite3.DataError as error:
-        print(error)
-    finally:
-        close_connection(connection, cursor)
-
-insert_into_junction(book1, publisher1)
+    querry_database(query, parameters)
 
 
 def get_junction():
+    query = """SELECT * FROM junction
+                            JOIN books ON junction.book_id = books.book_id
+                            JOIN publishers ON junction.publisher_id = publishers.publisher_id
+                            """
+    querry_database(query, parameters=None)
 
 
+book1 = book(None, "Tu gali", "Josef Murphy", 25.05)
+book2 = book(None, "As nenoriu", "Petras Petrauskas", 12.90)
+
+publisher1 = publisher(None, "Baltos_lankos", "Tu_gali", "Josef_Murphy", 5000, 8)
+
+create_books_table()
+create_publisher_table()
+# create_book(book1)
+# create_publisher(publisher1)
+# delete_publisher(publisher1)
+# delete_book(book1)
+get_book()
+get_publisher()
+junction_table()
+# insert_into_junction(book1.book_name, publisher1.publisher_name)
+get_junction()
